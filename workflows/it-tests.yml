@@ -1,0 +1,52 @@
+name: it-tests
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  it-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          export_environment_variables: true
+          create_credentials_file: true
+      - name: cache SBT
+        uses: coursier/cache-action@v6
+      - name: Java 11 setup
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 11
+      - name: set JVM opts
+        run: scripts/gha_setup.sh
+        env:
+          CLOUDSQL_SQLSERVER_PASSWORD: ${{ secrets.CLOUDSQL_SQLSERVER_PASSWORD }}
+      - run: sbt IntegrationTest/test
+
+  build-docs:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          export_environment_variables: true
+          create_credentials_file: true
+      - name: Cache SBT
+        uses: coursier/cache-action@v6
+      - name: Java 11 setup
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 11
+      - name: Setup project
+        run: scripts/gha_setup.sh
+      - name: Build documentation
+        run: sbt site/makeSite
